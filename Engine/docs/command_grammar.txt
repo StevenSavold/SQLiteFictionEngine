@@ -1,0 +1,11 @@
+Grammar:
+    command : verb direct_object_string
+    
+    verb : VERB_IN_TBALE (or SYN TABLE INDIRECTLY)
+
+    direct_object_string : NOUN_IN_OBJECT_TABLE
+    direct_object_string : adjective NOUN_IN_OBJECT_TABLE
+    
+    adjective : 
+    adjective : ADJECTIVE_IN_TABLE
+    adjective : adjective ADJECTIVE_IN_TABLE
