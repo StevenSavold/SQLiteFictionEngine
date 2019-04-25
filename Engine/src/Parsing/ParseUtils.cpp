@@ -57,8 +57,9 @@ std::string ParseInputToSQLCommand(const std::string& preprocessedInput, const D
 	 * of the input string should be a verb. As such, find the
 	 * longest first occurrence of any of the keywords in the DB
 	 */
-	std::string foundVerb = FindFirstLongestKeyword(current, *verbs);
-	if (foundVerb.empty())
+	const std::pair<std::string, Database::DBInt>* const foundVerb = FindFirstLongestKeyword(current, *verbs);
+
+	if (foundVerb == nullptr)
 	{
 		// If the foundVerb variable remains empty
 		// Then we did not find a known verb.
@@ -69,7 +70,7 @@ std::string ParseInputToSQLCommand(const std::string& preprocessedInput, const D
 	}
 
 	// we found a verb that matches. so remove the verb from the string
-	current.erase(0, foundVerb.length());
+	current.erase(0, foundVerb->first.length());
 
 	/* 
 	 * Because of the grammar of the commands the last piece 
@@ -77,7 +78,7 @@ std::string ParseInputToSQLCommand(const std::string& preprocessedInput, const D
 	 * find the longest last occurrence of any of the objects in the DB
 	 */
 	std::string foundObject = FindLastLongestKeyword(current, *objects);
-	if (foundVerb.empty())
+	if (foundObject.empty())
 	{
 		// If the foundObject variable remains empty
 		// Then we did not find a known verb.
@@ -89,20 +90,19 @@ std::string ParseInputToSQLCommand(const std::string& preprocessedInput, const D
 
 	
 
-	return foundVerb;
+
+
+	return foundObject;
 
 }
 
-std::string FindFirstLongestKeyword(const std::string& searchSpace, const std::vector<std::pair<std::string, Database::DBInt>>& keywords)
+const std::pair<std::string, Database::DBInt>* FindFirstLongestKeyword(const std::string& searchSpace, const std::vector<std::pair<std::string, Database::DBInt>>& keywords)
 { 
-	std::string foundString;
+	const std::pair<std::string, Database::DBInt>* foundString = nullptr;
 	for (size_t i = 0; i < keywords.size(); ++i)
 	{
 		size_t pos;
 		size_t length = 0;
-
-		//pos = searchSpace.find(keywords[i].first, keywords[i].first.length());
-		//bool x1 = (pos != std::string::npos);
 
 		if (
 			((pos = searchSpace.find(keywords[i].first)) != std::string::npos)
@@ -115,18 +115,11 @@ std::string FindFirstLongestKeyword(const std::string& searchSpace, const std::v
 			// If you find something valid, and it starts at position 0
 			// and its longer then length
 			// update our results
-			foundString = keywords[i].first;
+			foundString = &keywords[i];
 			length = keywords[i].first.length();
 		}
 	}
-	if (foundString.empty())
-	{
-		// If the foundString variable remains empty
-		// Then we did not find a known keyword.
-		// return invalid result (aka empty string)
-		return "";
-	}
-	// Otherwise return the found string
+
 	return foundString;
 }
 

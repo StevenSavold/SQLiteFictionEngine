@@ -1,0 +1,14 @@
+#directories
+.vs/
+bin/
+bin-int/
+
+#files
+*.sln
+*.vcxproj
+*.filters
+*.user
+
+*.DS_Store
+*.xcworkspace
+*.xcodeproj
