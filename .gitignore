@@ -1,5 +1,6 @@
 #directories
 .vs/
+.vscode/
 bin/
 bin-int/
 
@@ -12,3 +13,5 @@ bin-int/
 *.DS_Store
 *.xcworkspace
 *.xcodeproj
+
+Makefile

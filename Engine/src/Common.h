@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <functional>
 
 #define log(...) \
     fprintf(stdout, __VA_ARGS__)

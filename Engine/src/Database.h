@@ -18,7 +18,8 @@ private:
 
 public:
 
-    using SQLCallbackFn = int(void*, int, char**, char**);
+    using SQLCallbackFn = std::function<int(void*, int, char**, char**)>;
+    using ID_type = int;
 	using DBInt = int;
 
     Database(const char* dbfile)

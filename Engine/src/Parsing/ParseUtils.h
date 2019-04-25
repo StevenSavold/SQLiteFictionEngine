@@ -8,7 +8,7 @@
 
 std::string GetUserInput();
 std::string PreprocessInput(const std::string& rawInput);
-std::string ParseInputToSQLCommand(const std::string& preprocessedInput, const Database& db);
+std::pair<Database::ID_type, Database::ID_type> ParseInputToSQLCommand(const std::string& preprocessedInput, const Database& db);
 
-const std::pair<std::string, Database::DBInt>* FindFirstLongestKeyword(const std::string& searchSpace, const std::vector<std::pair<std::string, Database::DBInt>>& keywords);
-std::string FindLastLongestKeyword(const std::string& searchSpace, const std::vector<std::string>& keywords);
+const std::pair<std::string, Database::ID_type>* FindFirstLongestKeyword(const std::string& searchSpace, const std::vector<std::pair<std::string, Database::ID_type>>& keywords);
+const std::pair<std::string, Database::ID_type>* FindLastLongestKeyword(const std::string& searchSpace, const std::vector<std::pair<std::string, Database::ID_type>>& keywords);

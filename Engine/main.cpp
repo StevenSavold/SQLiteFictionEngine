@@ -5,6 +5,8 @@
 void printUsage(const char* progName);
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 void printOffscreenDesc(const Database& db);
+std::string GenerateSQLFromIDs(const std::pair<Database::ID_type, Database::ID_type>& ids);
+Database::SQLCallbackFn GetSQLCallbackFunction(const std::pair<Database::ID_type, Database::ID_type>& ids, const Database& db);
 
 int main(int argc, char** argv)
 {
@@ -24,7 +26,9 @@ int main(int argc, char** argv)
     bool shouldQuit = false;
     std::string userInput;
 	std::string processedInput;
+    std::pair<Database::ID_type, Database::ID_type> parsedIDs;
     std::string command;
+    Database::SQLCallbackFn callbackFn;
 
     //printOffscreenDesc(db);
     //while (!shouldQuit)
@@ -44,17 +48,30 @@ int main(int argc, char** argv)
 		processedInput = PreprocessInput(userInput);
 
         /*
-         * Parse the preprocessed input to a SQL command 
-         * to be executed by sqlite
+         * Parse the preprocessed input to a the IDs of the verb
+         * and noun
          */ 
-        command = ParseInputToSQLCommand(processedInput, db);
+        parsedIDs = ParseInputToSQLCommand(processedInput, db);
 
-		log("%s\n", command.c_str());
+		log("{ %d, %d }\n", parsedIDs.first, parsedIDs.second);
+
+        /*
+         * Using the IDs, generate a SQL command to perform the 
+         * requested action(s) on the database. 
+         */
+        command = GenerateSQLFromIDs(parsedIDs);
+
+        /*
+         * Retrieve the callback function to be used at the time
+         * of SQL execution. 
+         */
+        callbackFn = GetSQLCallbackFunction(parsedIDs, db);
+
         /*
          * Execute the command on the database. Perform the
          * callback on the results
          */
-        //db.Exec(command.c_str(), callback);
+        //db.Exec(command.c_str(), callbackFn);
 
     }
 
@@ -82,4 +99,14 @@ void printOffscreenDesc(const Database& db)
 {
     std::unique_ptr<std::string> desc = db.GetDescription(0);
     log("%s\n", desc->c_str());
+}
+
+std::string GenerateSQLFromIDs(const std::pair<Database::ID_type, Database::ID_type>& ids)
+{
+    return "";
+}
+
+Database::SQLCallbackFn GetSQLCallbackFunction(const std::pair<Database::ID_type, Database::ID_type>& ids, const Database& db)
+{
+    return callback;
 }
