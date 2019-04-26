@@ -30,8 +30,7 @@ std::pair<Database::ID_type, Database::ID_type> ParseInputToSQLCommand(const std
 	std::string current = preprocessedInput; 
 
 	// Get all verbs from the Database
-	/* #TODO: verbs table will be changed to a 'verb_syn' table of sorts */
-	auto verbs = db.GetFrom<std::vector<std::pair<std::string, Database::ID_type>>>("verbs", "verb, id", 
+	auto verbs = db.GetFrom<std::vector<std::pair<std::string, Database::ID_type>>>("verbs", "verb, verb_id", 
 		[](void* output, int argc, char** argv, char** colName) -> int 
 	{
 		std::vector<std::pair<std::string, Database::ID_type>>* verbList = static_cast<std::vector<std::pair<std::string, Database::ID_type>>*>(output);
@@ -83,7 +82,7 @@ std::pair<Database::ID_type, Database::ID_type> ParseInputToSQLCommand(const std
 	}
 
 	// Return the parsed pair of IDs (first being the verb, second being the object)
-	// if any are -1 then no vaild ID was found
+	// if any are -1 then no valid ID was found
 	return parsedIDs;
 
 }

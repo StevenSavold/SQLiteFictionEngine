@@ -8,6 +8,8 @@
 #include <utility>
 #include <functional>
 
+#include "GameObject.h"
+
 #define log(...) \
     fprintf(stdout, __VA_ARGS__)
 

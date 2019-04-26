@@ -1,12 +1,12 @@
 #include "Common.h"
 #include "Database.h"
+#include "Systems/VerbRegistery.h"
 #include "Parsing/ParseUtils.h"
 
 void printUsage(const char* progName);
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 void printOffscreenDesc(const Database& db);
-std::string GenerateSQLFromIDs(const std::pair<Database::ID_type, Database::ID_type>& ids);
-Database::SQLCallbackFn GetSQLCallbackFunction(const std::pair<Database::ID_type, Database::ID_type>& ids, const Database& db);
+std::unique_ptr<VerbRegistry> RegisterVerbs(const Database& db);
 
 int main(int argc, char** argv)
 {
@@ -16,6 +16,9 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+	log("%d\n", sizeof(int) == sizeof(Optional<int>));
+
+
     Database db(argv[1]);
     if (!db.is_open())
     {
@@ -23,15 +26,19 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+	//Initialize Systems
+	std::unique_ptr<VerbRegistry> vr = RegisterVerbs(db); //Create the verb registry
+
+
     bool shouldQuit = false;
     std::string userInput;
 	std::string processedInput;
-    std::pair<Database::ID_type, Database::ID_type> parsedIDs;
-    std::string command;
-    Database::SQLCallbackFn callbackFn;
+	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
+	VerbFn command;
+	
 
     //printOffscreenDesc(db);
-    //while (!shouldQuit)
+    while (!shouldQuit)
     {
         /* 
 		 * Returns a copy of the users entered string,
@@ -53,25 +60,19 @@ int main(int argc, char** argv)
          */ 
         parsedIDs = ParseInputToSQLCommand(processedInput, db);
 
-		log("{ %d, %d }\n", parsedIDs.first, parsedIDs.second);
+		//log("{ %d, %d }\n", parsedIDs.first, parsedIDs.second);
 
         /*
-         * Using the IDs, generate a SQL command to perform the 
-         * requested action(s) on the database. 
-         */
-        command = GenerateSQLFromIDs(parsedIDs);
-
-        /*
-         * Retrieve the callback function to be used at the time
+         * Retrieve the command function to be used at the time
          * of SQL execution. 
          */
-        callbackFn = GetSQLCallbackFunction(parsedIDs, db);
+        command = vr->GetVerbFunction(parsedIDs.first);
 
         /*
-         * Execute the command on the database. Perform the
-         * callback on the results
+         * Perform the command, giving it the parsed id for the
+		 * object
          */
-        //db.Exec(command.c_str(), callbackFn);
+		command(db, parsedIDs.second);
 
     }
 
@@ -101,12 +102,46 @@ void printOffscreenDesc(const Database& db)
     log("%s\n", desc->c_str());
 }
 
-std::string GenerateSQLFromIDs(const std::pair<Database::ID_type, Database::ID_type>& ids)
+std::unique_ptr<VerbRegistry> RegisterVerbs(const Database& db)
 {
-    return "";
-}
+	std::unique_ptr<VerbRegistry> vr = std::make_unique<VerbRegistry>();
 
-Database::SQLCallbackFn GetSQLCallbackFunction(const std::pair<Database::ID_type, Database::ID_type>& ids, const Database& db)
-{
-    return callback;
+	auto verbs = db.GetFrom<std::vector<std::pair<std::string, Database::ID_type>>>("verbs", "verb, verb_id",
+		[](void* output, int argc, char** argv, char** colName) -> int
+	{
+		std::vector<std::pair<std::string, Database::ID_type>>* verbList = static_cast<std::vector<std::pair<std::string, Database::ID_type>>*>(output);
+		verbList->emplace_back(argv[0], atoi(argv[1]));
+
+		return 0;
+	});
+
+	for (const auto& verb : *verbs)
+	{
+		vr->RegisterVerb(verb.second, [verb](Database& db, Database::ID_type objID) {
+		
+			/* 
+			 * Idea for future implementation:
+			 *     Use lua to call a lua function with
+			 *     the same name as the verb to do this 
+			 *     stuff.
+			 */
+
+			/* Get the player info */
+			auto player = db.GetObject(PLAYER_ID);
+
+			/* Get the directions of the players holder */
+			auto directions = db.GetDirections(*(player->holder));
+
+			player->holder = (directions->East >= 0) ? (Optional(directions->East)) : Nullopt ;
+
+			db.UpdateObject(*player);
+
+			auto newPlace = db.GetObject(*(player->holder));
+
+			log("player is now at %s\n", newPlace->name.c_str());
+
+		});
+	}
+
+	return std::move(vr);
 }
