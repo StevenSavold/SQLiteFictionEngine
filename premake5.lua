@@ -3,7 +3,7 @@
 
 -- workspace (Solution) for the entire emulator 
 workspace "SQLiteFictionEngine"
-    architecture "x86_64"
+    architecture "x86"
     configurations
     {
          "Debug",
@@ -41,17 +41,20 @@ project "Engine"
         "vendor/lua/lua-5/include"
     }
 
-    links
-    {
-        "lua",
-        "m",
-        "dl"
-    }
-
     filter "system:windows"
         defines
         {
             "ENGINE_PLATFORM_WINDOWS"
+        }
+
+        libdirs
+        {
+            "vendor/lua/lua-5"
+        }
+
+        links
+        {
+            "liblua53",
         }
 
     filter "system:linux"
@@ -60,10 +63,24 @@ project "Engine"
             "ENGINE_PLATFORM_LINUX"
         }
 
+        links
+        {
+            "lua",
+            "m",
+            "dl"
+        }
+
     filter "system:macosx"
         defines
         {
             "ENGINE_PLATFORM_MACOS"
+        }
+
+        links
+        {
+            "lua",
+            "m",
+            "dl"
         }
 
     -- Filter for Debug configuration

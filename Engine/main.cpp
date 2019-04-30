@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 		lua_register(L, "get_current_room", GetCurrentRoom_Lua);
 
 		/* 
-	     * Do the assests file provided by the author to perform 
+	     * Do the assets file provided by the author to perform 
 		 * init code and load the verb function symbols.
 		 */
 		if (luaL_dofile(L, "res/assets.lua"))
