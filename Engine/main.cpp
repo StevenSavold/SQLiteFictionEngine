@@ -1,12 +1,13 @@
 #include "Common.h"
 #include "Database.h"
-#include "Systems/VerbRegistery.h"
 #include "Parsing/ParseUtils.h"
+#include "lua/lua.hpp"
+
 
 void printUsage(const char* progName);
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 void printOffscreenDesc(const Database& db);
-std::unique_ptr<VerbRegistry> RegisterVerbs(const Database& db);
+void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs);
 
 int main(int argc, char** argv)
 {
@@ -26,15 +27,32 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-	//Initialize Systems
-	std::unique_ptr<VerbRegistry> vr = RegisterVerbs(db); //Create the verb registry
+	//-- Initialize Systems --//
+	// Initalize lua state for Dynamic Command Disptach
+	lua_State* L = luaL_newstate();
+	if (L == nullptr)
+	{
+		// something went wrong
+		err("Could not create lua state!\n");
+		return EXIT_FAILURE;
+	}
+	else 
+	{
+		luaL_openlibs(L);
+
+		if (luaL_dofile(L, "res/assets.lua"))
+		{
+			err("assests.lua could not be loaded!\n");
+		}
+	}
 
 
     bool shouldQuit = false;
     std::string userInput;
 	std::string processedInput;
 	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
-	VerbFn command;
+
+	
 	
 
     //printOffscreenDesc(db);
@@ -62,17 +80,7 @@ int main(int argc, char** argv)
 
 		//log("{ %d, %d }\n", parsedIDs.first, parsedIDs.second);
 
-        /*
-         * Retrieve the command function to be used at the time
-         * of SQL execution. 
-         */
-        command = vr->GetVerbFunction(parsedIDs.first);
-
-        /*
-         * Perform the command, giving it the parsed id for the
-		 * object
-         */
-		command(db, parsedIDs.second);
+		DynamicCommandDispatch(L, db, parsedIDs);
 
     }
 
@@ -102,46 +110,31 @@ void printOffscreenDesc(const Database& db)
     log("%s\n", desc->c_str());
 }
 
-std::unique_ptr<VerbRegistry> RegisterVerbs(const Database& db)
+void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs)
 {
-	std::unique_ptr<VerbRegistry> vr = std::make_unique<VerbRegistry>();
-
-	auto verbs = db.GetFrom<std::vector<std::pair<std::string, Database::ID_type>>>("verbs", "verb, verb_id",
-		[](void* output, int argc, char** argv, char** colName) -> int
+	// Get the verb name from the database
+	std::string whereClause = "id=";
+	whereClause += std::to_string(parsedIDs.first);
+	auto funcName = db.GetFrom<std::string>("verbs", "verb", whereClause.c_str(), 
+		[](void* output, int argc, char** argv, char** colName) -> int 
 	{
-		std::vector<std::pair<std::string, Database::ID_type>>* verbList = static_cast<std::vector<std::pair<std::string, Database::ID_type>>*>(output);
-		verbList->emplace_back(argv[0], atoi(argv[1]));
-
+		(*(static_cast<std::string*>(output))) += argv[0];
 		return 0;
 	});
 
-	for (const auto& verb : *verbs)
+	//log("verb is: %s\n", funcName->c_str());
+
+	lua_getglobal(L, funcName->c_str());
+	if (!lua_isfunction(L, -1))
 	{
-		vr->RegisterVerb(verb.second, [verb](Database& db, Database::ID_type objID) {
-		
-			/* 
-			 * Idea for future implementation:
-			 *     Use lua to call a lua function with
-			 *     the same name as the verb to do this 
-			 *     stuff.
-			 */
+		// If the thing on the top of the stack is not a lua function, error
+		err("No lua function exists by the name of '%s'\n", funcName->c_str());
 
-			/* Get the player info */
-			auto player = db.GetObject(PLAYER_ID);
-
-			/* Get the directions of the players holder */
-			auto directions = db.GetDirections(*(player->holder));
-
-			player->holder = (directions->East >= 0) ? (Optional(directions->East)) : Nullopt ;
-
-			db.UpdateObject(*player);
-
-			auto newPlace = db.GetObject(*(player->holder));
-
-			log("player is now at %s\n", newPlace->name.c_str());
-
-		});
 	}
-
-	return std::move(vr);
+	else
+	{
+		// If the function exists. call it.
+		lua_call(L, 0, 0);
+	}
+	
 }

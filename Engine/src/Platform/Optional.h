@@ -14,9 +14,3 @@
     #define Optional std::optional
     #define Nullopt  std::nullopt
 #endif
-
-#define SafeSetString(optVal) (optVal != nullptr) ? Optional(optVal) : Nullopt
-#define SafeSetInt(optVal) (optVal != nullptr) ? Optional(atoi(optVal)) : Nullopt
-
-#define SafeAccessString(opt) (opt) ? (std::string("'") + *(opt) + std::string("'")) : ("NULL")
-#define SafeAccessInt(opt) (opt) ? (std::to_string(*(opt))) : ("NULL")

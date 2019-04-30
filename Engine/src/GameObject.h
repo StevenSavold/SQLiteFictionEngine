@@ -6,11 +6,11 @@ struct GameObject {
 
 	int id;
 	std::string name;
-	Optional<int> holder;
-	Optional<std::string> short_desc;
-	Optional<std::string> first_time_desc;
-	Optional<std::string> desc;
-	Optional<int> N, E, W, S, U, D;
+	int holder;
+	std::string short_desc;
+	std::string first_time_desc;
+	std::string desc;
+	int N, E, W, S, U, D;
 	int is_viewed, is_getable;
 
 };

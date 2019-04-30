@@ -3,7 +3,7 @@
 
 -- workspace (Solution) for the entire emulator 
 workspace "SQLiteFictionEngine"
-    architecture "x86"
+    architecture "x86_64"
     configurations
     {
          "Debug",
@@ -31,12 +31,21 @@ project "Engine"
 
     includedirs
     {
-        "%{prj.name}/src"
+        "%{prj.name}/src",
+        "vendor/lua/lua-5/include"
     }
 
     sysincludedirs
     {
-        "%{prj.name}/src"
+        "%{prj.name}/src",
+        "vendor/lua/lua-5/include"
+    }
+
+    links
+    {
+        "lua",
+        "m",
+        "dl"
     }
 
     filter "system:windows"

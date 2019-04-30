@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#include <unordered_map>
 
 #include "GameObject.h"
 
