@@ -9,6 +9,13 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 void printOffscreenDesc(const Database& db);
 void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs);
 
+int GetCurrentRoom_Lua(lua_State* L);
+
+
+/* Global Database Instance */
+Database* g_DBInst = nullptr;
+
+
 int main(int argc, char** argv)
 {
     if (argc < 2)
@@ -26,9 +33,11 @@ int main(int argc, char** argv)
         err("Cannot open database '%s'", argv[1]);
         return EXIT_FAILURE;
     }
+	g_DBInst = &db;
 
 	//-- Initialize Systems --//
-	// Initalize lua state for Dynamic Command Disptach
+
+	/* Start Lua Init */
 	lua_State* L = luaL_newstate();
 	if (L == nullptr)
 	{
@@ -38,22 +47,28 @@ int main(int argc, char** argv)
 	}
 	else 
 	{
+		/* Open the lua std libs for use */
 		luaL_openlibs(L);
 
+		/* Register engine functions with lua for use */
+		lua_register(L, "get_current_room", GetCurrentRoom_Lua);
+
+		/* 
+	     * Do the assests file provided by the author to perform 
+		 * init code and load the verb function symbols.
+		 */
 		if (luaL_dofile(L, "res/assets.lua"))
 		{
 			err("assests.lua could not be loaded!\n");
 		}
 	}
+	/* End Lua Init */
 
 
     bool shouldQuit = false;
     std::string userInput;
 	std::string processedInput;
 	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
-
-	
-	
 
     //printOffscreenDesc(db);
     while (!shouldQuit)
@@ -137,4 +152,14 @@ void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database
 		lua_call(L, 0, 0);
 	}
 	
+}
+
+int GetCurrentRoom_Lua(lua_State* L)
+{
+	auto player = g_DBInst->GetObject(PLAYER_ID);
+
+	lua_pushnumber(L, player->holder);
+
+	return 1;
+
 }
