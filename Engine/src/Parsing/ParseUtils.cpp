@@ -102,7 +102,7 @@ const std::pair<std::string, Database::ID_type>* FindFirstLongestKeyword(const s
 			&&
 			(keywords[i].first.length() > length)
 			&& 
-			(searchSpace[keywords[i].first.length()] == ' ')
+			(searchSpace[keywords[i].first.length()] == ' ' || searchSpace[keywords[i].first.length()] == '\0')
 			)
 		{
 			// If you find something valid, and it starts at position 0

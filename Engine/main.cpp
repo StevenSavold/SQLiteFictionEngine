@@ -10,6 +10,10 @@ void printOffscreenDesc(const Database& db);
 void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs);
 
 int GetCurrentRoom_Lua(lua_State* L);
+int GetRoomTransitions_Lua(lua_State* L);
+int PlayerTransitionTo_Lua(lua_State* L);
+int PrintLocationText_Lua(lua_State* L);
+int PrintOffscreenText_Lua(lua_State* L);
 
 
 /* Global Database Instance */
@@ -23,9 +27,6 @@ int main(int argc, char** argv)
         printUsage(argv[0]);
         return EXIT_FAILURE;
     }
-
-	log("%d\n", sizeof(int) == sizeof(Optional<int>));
-
 
     Database db(argv[1]);
     if (!db.is_open())
@@ -52,6 +53,10 @@ int main(int argc, char** argv)
 
 		/* Register engine functions with lua for use */
 		lua_register(L, "get_current_room", GetCurrentRoom_Lua);
+		lua_register(L, "get_room_transitions", GetRoomTransitions_Lua);
+		lua_register(L, "player_transition_to", PlayerTransitionTo_Lua);
+		lua_register(L, "print_location_text", PrintLocationText_Lua);
+		lua_register(L, "print_offscreen_text", PrintOffscreenText_Lua);
 
 		/* 
 	     * Do the assets file provided by the author to perform 
@@ -70,7 +75,7 @@ int main(int argc, char** argv)
 	std::string processedInput;
 	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
 
-    //printOffscreenDesc(db);
+
     while (!shouldQuit)
     {
         /* 
@@ -93,8 +98,9 @@ int main(int argc, char** argv)
          */ 
         parsedIDs = ParseInputToSQLCommand(processedInput, db);
 
-		//log("{ %d, %d }\n", parsedIDs.first, parsedIDs.second);
-
+		/*
+		 * Use the IDs to dispatch the command into Lua
+		 */
 		DynamicCommandDispatch(L, db, parsedIDs);
 
     }
@@ -121,13 +127,20 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName)
 
 void printOffscreenDesc(const Database& db)
 {
-    std::unique_ptr<std::string> desc = db.GetDescription(0);
+    std::unique_ptr<std::string> desc = db.GetDescription(OFFSCREEN_ID);
     log("%s\n", desc->c_str());
 }
 
 void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs)
 {
-	// Get the verb name from the database
+	if (parsedIDs.first < 0)
+	{
+		// The verb was invalid
+		log("I dont know what you mean by that...\n");
+		return;
+	}
+
+	// Get the verb name from the
 	std::string whereClause = "id=";
 	whereClause += std::to_string(parsedIDs.first);
 	auto funcName = db.GetFrom<std::string>("verbs", "verb", whereClause.c_str(), 
@@ -137,19 +150,22 @@ void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database
 		return 0;
 	});
 
-	//log("verb is: %s\n", funcName->c_str());
+	/* Transform all spaces into '_' */
+	std::transform(funcName->begin(), funcName->end(), funcName->begin(), 
+		[](unsigned char c) -> unsigned char 
+	{ return (c == ' ') ? '_' : c; });
 
 	lua_getglobal(L, funcName->c_str());
-	if (!lua_isfunction(L, -1))
+	if (lua_isfunction(L, -1))
 	{
-		// If the thing on the top of the stack is not a lua function, error
-		err("No lua function exists by the name of '%s'\n", funcName->c_str());
-
+		// If the function exists. Pass the parameter in and call it.
+		lua_pushnumber(L, parsedIDs.second);
+		lua_call(L, 1, 0);	
 	}
 	else
 	{
-		// If the function exists. call it.
-		lua_call(L, 0, 0);
+		// If the thing on the top of the stack is not a lua function, error
+		err("No lua function exists by the name of '%s'\n", funcName->c_str());
 	}
 	
 }
@@ -157,9 +173,97 @@ void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database
 int GetCurrentRoom_Lua(lua_State* L)
 {
 	auto player = g_DBInst->GetObject(PLAYER_ID);
-
 	lua_pushnumber(L, player->holder);
 
 	return 1;
+}
 
+int GetRoomTransitions_Lua(lua_State* L)
+{
+	std::unique_ptr<Directions> roomDirections = nullptr;
+
+	// get the thing at the top of the stack
+	int roomID = static_cast<int>(lua_tonumber(L, -1));
+	if (roomID >= 0)
+	{
+		roomDirections = g_DBInst->GetDirections(roomID);
+		lua_pushnumber(L, roomDirections->North);
+		lua_pushnumber(L, roomDirections->South);
+		lua_pushnumber(L, roomDirections->East );
+		lua_pushnumber(L, roomDirections->West );
+		lua_pushnumber(L, roomDirections->Up   );
+		lua_pushnumber(L, roomDirections->Down );
+	}
+
+	return 6;
+
+}
+
+bool isValidRoomID(int newRoomID)
+{
+	if (newRoomID < 0) {
+		return false;
+	}
+
+	std::string whereClause = "id=";
+	whereClause += std::to_string(newRoomID);
+
+	std::unique_ptr<int> query = g_DBInst->GetFrom<int>("object", "id", whereClause.c_str(), 
+		[](void* output, int argc, char** argv, char** colName) -> int
+	{
+		*(static_cast<int*>(output)) = atoi(argv[0]);
+		return 0;
+	});
+
+	if (*query != newRoomID)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
+}
+
+int PlayerTransitionTo_Lua(lua_State* L)
+{
+	// The thing at the top of the stack is the new room id
+	int newRoomID = static_cast<int>(lua_tonumber(L, -1));
+
+	if (isValidRoomID(newRoomID))
+	{
+		auto player = g_DBInst->GetObject(PLAYER_ID);
+		player->holder = newRoomID;
+		g_DBInst->UpdateObject(*player);
+
+		lua_pushboolean(L, 1);
+	}
+	else
+	{
+		/* Invalid transition */
+		lua_pushboolean(L, 0);
+	}
+	
+	return 1;
+
+}
+
+int PrintLocationText_Lua(lua_State* L)
+{
+
+	auto player = g_DBInst->GetObject(PLAYER_ID);
+	auto currLocation = g_DBInst->GetObject(player->holder);
+
+	log("You are in the %s\n\n", currLocation->name.c_str());
+	log("\t%s\n", currLocation->desc.c_str());
+
+	return 0;
+
+}
+
+int PrintOffscreenText_Lua(lua_State* L)
+{
+	printOffscreenDesc(*g_DBInst);
+	return 0;
 }
