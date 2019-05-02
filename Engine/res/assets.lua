@@ -9,23 +9,55 @@ function get(item_id)
 end
 
 function look(item_id)
-    -- #TODO: implement me!
     
-    -- print the desc of the item IFF, the items holder is the player, or the players holder and is_viewed is true
-    -- otherwise if the its holder is the player or the players holder and it has not been viewed, print the first_time_desc
+    -- print the desc of the item IFF, the items holder is the player, 
+    --     or the players holder and is_viewed is true
+    -- otherwise if the its holder is the player or the players holder
+    --     and it has not been viewed, print the first_time_desc
     -- else error
+
+    local items_holder = get_holder(item_id)
+    local players_holder = get_current_room()
+
+    if items_holder == players_holder or items_holder == get_player_id() then
+        if is_viewed(item_id) then
+            print_desc(item_id)
+        else
+            print_first_desc(item_id)
+        end
+    else
+        print("You can't see anything like that here...")
+    end
+
 end
 
 function examine(item_id)
-    -- #TODO: implement me!
     
-    -- print the first_time_desc always if the items holder is the player or the players holder
+    -- print the first_time_desc always if the items holder is the player or 
+    -- the players holder
+    local items_holder = get_holder(item_id)
+    local player_holder = get_current_room()
+
+    if items_holder == player_holder or items_holder == get_player_id() then 
+        print_first_desc(item_id)
+    else 
+        print("You can't see anything like that here...")
+    end
+
 end
 
 function drop(item_id)
-    -- #TODO: implement me!
     
     -- if the items holder is the player, update the items holder to the players holder
+    items_holder = get_holder(item_id)
+    players_holder = get_current_room()
+
+    if items_holder == get_player_id() then
+        update_holder(item_id, players_holder)
+    else
+        print("You cannot drop what you don't have.")
+    end
+
 end
 
 function n(item_id)

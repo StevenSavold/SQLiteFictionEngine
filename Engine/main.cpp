@@ -1,6 +1,6 @@
 #include "Common.h"
-#include "Database.h"
 #include "Parsing/ParseUtils.h"
+#include "Database.h"
 #include "lua/lua.hpp"
 
 
@@ -14,7 +14,12 @@ int GetRoomTransitions_Lua(lua_State* L);
 int PlayerTransitionTo_Lua(lua_State* L);
 int PrintLocationText_Lua(lua_State* L);
 int PrintOffscreenText_Lua(lua_State* L);
-
+int GetHolder_Lua(lua_State* L);
+int GetPlayerID_Lua(lua_State* L);
+int IsViewed_Lua(lua_State* L);
+int PrintItemDescription_Lua(lua_State* L);
+int PrintFirstDescription_Lua(lua_State* L);
+int UpdateHolder_Lua(lua_State* L);
 
 /* Global Database Instance */
 Database* g_DBInst = nullptr;
@@ -57,6 +62,12 @@ int main(int argc, char** argv)
 		lua_register(L, "player_transition_to", PlayerTransitionTo_Lua);
 		lua_register(L, "print_location_text", PrintLocationText_Lua);
 		lua_register(L, "print_offscreen_text", PrintOffscreenText_Lua);
+		lua_register(L, "get_holder", GetHolder_Lua);
+		lua_register(L, "get_player_id", GetPlayerID_Lua);
+		lua_register(L, "is_viewed", IsViewed_Lua);
+		lua_register(L, "print_desc", PrintItemDescription_Lua);
+		lua_register(L, "print_first_desc", PrintFirstDescription_Lua);
+		lua_register(L, "update_holder", UpdateHolder_Lua);
 
 		/* 
 	     * Do the assets file provided by the author to perform 
@@ -265,5 +276,84 @@ int PrintLocationText_Lua(lua_State* L)
 int PrintOffscreenText_Lua(lua_State* L)
 {
 	printOffscreenDesc(*g_DBInst);
+	return 0;
+}
+
+int GetHolder_Lua(lua_State* L)
+{
+	// Retrieve the param from lua
+	int itemID = lua_tointeger(L, -1);
+	// get info about the item
+	auto item = g_DBInst->GetObject(itemID);
+	// place the return value on the lua stack
+	lua_pushinteger(L, item->holder);
+	// tell lua how many returns you placed on the stack
+	return 1;
+
+}
+
+int GetPlayerID_Lua(lua_State* L)
+{
+	lua_pushinteger(L, PLAYER_ID);
+	return 1;
+}
+
+int IsViewed_Lua(lua_State* L)
+{
+	// Retrieve the param from lua
+	int itemID = lua_tointeger(L, -1);
+	// get info about the item
+	auto item = g_DBInst->GetObject(itemID);
+	// place the return value on the lua stack
+	lua_pushboolean(L, item->is_viewed);
+	// update the item to be viewed if it isnt already
+	if (!item->is_viewed)
+	{
+		item->is_viewed = 1;
+		g_DBInst->UpdateObject(*item);
+	}
+	// tell lua how many returns you placed on the stack
+	return 1;
+}
+
+int PrintItemDescription_Lua(lua_State* L)
+{
+	// Retrieve the param from lua
+	int itemID = lua_tointeger(L, -1);
+	
+	// get info about the item
+	auto item = g_DBInst->GetObject(itemID);
+
+	// print the description
+	log("%s\n", item->desc.c_str());
+
+	// return nothing
+	return 0;
+}
+
+int PrintFirstDescription_Lua(lua_State* L)
+{
+	// Retrieve the param from lua
+	int itemID = lua_tointeger(L, -1);
+	
+	// get info about the item
+	auto item = g_DBInst->GetObject(itemID);
+
+	// print the description
+	log("%s\n", item->first_time_desc.c_str());
+
+	// return nothing
+	return 0;
+}
+
+int UpdateHolder_Lua(lua_State* L)
+{
+	int itemID = lua_tointeger(L, -2);
+	int newHolder = lua_tointeger(L, -1);
+
+	auto item = g_DBInst->GetObject(itemID);
+	item->holder = newHolder;
+	g_DBInst->UpdateObject(*item);
+
 	return 0;
 }

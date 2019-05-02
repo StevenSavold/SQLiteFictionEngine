@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+#include "Parsing/ParseUtils.h"
 #include "sqlite3/sqlite3.h"
 #include <cstdarg>
 #include <string>
@@ -181,33 +182,32 @@ public:
 		}));
 	}
 
-
 	void UpdateObject(const GameObject& obj)
 	{
 		std::string sqlCode = "UPDATE object SET id=";
 		sqlCode += std::to_string(obj.id);
-		sqlCode += ", name='";
-		sqlCode += obj.name;
-		sqlCode += "', holder=";
+		sqlCode += ", name=";
+		sqlCode += SafeWrap(obj.name);
+		sqlCode += ", holder=";
 		sqlCode += (obj.holder != -1) ? std::to_string(obj.holder) : "NULL";
 		sqlCode += ", short_desc=";
-		sqlCode += (obj.short_desc.empty()) ? "NULL" : obj.short_desc;
+		sqlCode += (obj.short_desc.empty()) ? "NULL" : SafeWrap(obj.short_desc).c_str();
 		sqlCode += ", first_time_desc=";
-		sqlCode += (obj.first_time_desc.empty()) ? "NULL" : obj.first_time_desc;
+		sqlCode += (obj.first_time_desc.empty()) ? "NULL" : SafeWrap(obj.first_time_desc).c_str();
 		sqlCode += ", desc="; 
-		sqlCode += (obj.desc.empty()) ? "NULL" : obj.desc;
+		sqlCode += (obj.desc.empty()) ? "NULL" : SafeWrap(obj.desc).c_str();
 		sqlCode += ", N=";
 		sqlCode += (obj.N != -1) ? std::to_string(obj.N) : "NULL";
 		sqlCode += ", E=";
-		sqlCode += (obj.E != -1) ? std::to_string(obj.N) : "NULL";
+		sqlCode += (obj.E != -1) ? std::to_string(obj.E) : "NULL";
 		sqlCode += ", W=";
-		sqlCode += (obj.W != -1) ? std::to_string(obj.N) : "NULL";
+		sqlCode += (obj.W != -1) ? std::to_string(obj.W) : "NULL";
 		sqlCode += ", S=";
-		sqlCode += (obj.S != -1) ? std::to_string(obj.N) : "NULL";
+		sqlCode += (obj.S != -1) ? std::to_string(obj.S) : "NULL";
 		sqlCode += ", U=";
-		sqlCode += (obj.U != -1) ? std::to_string(obj.N) : "NULL";
+		sqlCode += (obj.U != -1) ? std::to_string(obj.U) : "NULL";
 		sqlCode += ", D=";
-		sqlCode += (obj.D != -1) ? std::to_string(obj.N) : "NULL";
+		sqlCode += (obj.D != -1) ? std::to_string(obj.D) : "NULL";
 		sqlCode += ", is_viewed=";
 		sqlCode += std::to_string(obj.is_viewed);
 		sqlCode += ", is_getable=";

@@ -141,3 +141,17 @@ const std::pair<std::string, Database::ID_type>* FindLastLongestKeyword(const st
 
 	return foundString;
 }
+
+std::string SafeWrap(const std::string& input)
+{
+	std::string copy = input;
+
+	for (std::string::size_type pos = 0; 
+	(pos = copy.find('\'', pos)) != std::string::npos; pos += 2)
+	{
+		// Replace all single quotes in the string with 2 single quotes to escape them for sqlite
+		copy.replace(pos, 1, 2, '\'');
+	}
+
+	return (std::string("'") + copy + std::string("'"));
+}
