@@ -17,6 +17,7 @@ int PrintOffscreenText_Lua(lua_State* L);
 int GetHolder_Lua(lua_State* L);
 int GetPlayerID_Lua(lua_State* L);
 int IsViewed_Lua(lua_State* L);
+int IsGettable_Lua(lua_State* L);
 int PrintItemDescription_Lua(lua_State* L);
 int PrintFirstDescription_Lua(lua_State* L);
 int UpdateHolder_Lua(lua_State* L);
@@ -65,6 +66,7 @@ int main(int argc, char** argv)
 		lua_register(L, "get_holder", GetHolder_Lua);
 		lua_register(L, "get_player_id", GetPlayerID_Lua);
 		lua_register(L, "is_viewed", IsViewed_Lua);
+		lua_register(L, "is_gettable", IsGettable_Lua);
 		lua_register(L, "print_desc", PrintItemDescription_Lua);
 		lua_register(L, "print_first_desc", PrintFirstDescription_Lua);
 		lua_register(L, "update_holder", UpdateHolder_Lua);
@@ -194,7 +196,7 @@ int GetRoomTransitions_Lua(lua_State* L)
 	std::unique_ptr<Directions> roomDirections = nullptr;
 
 	// get the thing at the top of the stack
-	int roomID = static_cast<int>(lua_tonumber(L, -1));
+	int roomID = lua_tointeger(L, -1);
 	if (roomID >= 0)
 	{
 		roomDirections = g_DBInst->GetDirections(roomID);
@@ -240,7 +242,7 @@ bool isValidRoomID(int newRoomID)
 int PlayerTransitionTo_Lua(lua_State* L)
 {
 	// The thing at the top of the stack is the new room id
-	int newRoomID = static_cast<int>(lua_tonumber(L, -1));
+	int newRoomID = lua_tointeger(L, -1);
 
 	if (isValidRoomID(newRoomID))
 	{
@@ -314,6 +316,20 @@ int IsViewed_Lua(lua_State* L)
 	}
 	// tell lua how many returns you placed on the stack
 	return 1;
+}
+
+int IsGettable_Lua(lua_State* L)
+{
+
+	// Retrieve the param from lua
+	int itemID = lua_tointeger(L, -1);
+	// get info about the item
+	auto item = g_DBInst->GetObject(itemID);
+	// place the return value on the lua stack
+	lua_pushboolean(L, item->is_getable);
+	// tell lua how many returns you placed on the stack
+	return 1;
+
 }
 
 int PrintItemDescription_Lua(lua_State* L)

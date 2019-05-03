@@ -6,6 +6,16 @@ function get(item_id)
 
     -- update items holder to the player, 
     -- IFF the item is gettable and the items holder is the players holder
+
+	local items_holder = get_holder(item_id)
+	local players_holder = get_current_room()
+
+	if is_gettable(item_id) and items_holder == players_holder then
+		update_holder(item_id, get_player_id())
+	else
+		print("You cannot get what isnt there.")
+	end
+
 end
 
 function look(item_id)
