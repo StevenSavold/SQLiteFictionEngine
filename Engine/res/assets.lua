@@ -27,7 +27,13 @@ function look(item_id)
     -- else error
 
     local items_holder = get_holder(item_id)
-    local players_holder = get_current_room()
+	local players_holder = get_current_room()
+	
+	-- if no item was specified, look at the room and exit
+	if item_id == -1 then 
+		look_at_room(players_holder)
+		return
+	end 
 
     if items_holder == players_holder or items_holder == get_player_id() then
         if is_viewed(item_id) then
@@ -39,6 +45,10 @@ function look(item_id)
         print("You can't see anything like that here...")
     end
 
+end
+
+function look_at_room(room_id)
+	print_desc(room_id)
 end
 
 function examine(item_id)
