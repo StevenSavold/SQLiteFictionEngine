@@ -21,9 +21,11 @@ int IsGettable_Lua(lua_State* L);
 int PrintItemDescription_Lua(lua_State* L);
 int PrintFirstDescription_Lua(lua_State* L);
 int UpdateHolder_Lua(lua_State* L);
+int QuitGame_Lua(lua_State* L);
 
 /* Global Database Instance */
 Database* g_DBInst = nullptr;
+bool* g_ShouldQuit = nullptr;
 
 
 int main(int argc, char** argv)
@@ -43,6 +45,8 @@ int main(int argc, char** argv)
 	g_DBInst = &db;
 
 	//-- Initialize Systems --//
+    bool shouldQuit = false;
+    g_ShouldQuit = &shouldQuit;
 
 	/* Start Lua Init */
 	lua_State* L = luaL_newstate();
@@ -70,6 +74,7 @@ int main(int argc, char** argv)
 		lua_register(L, "print_desc", PrintItemDescription_Lua);
 		lua_register(L, "print_first_desc", PrintFirstDescription_Lua);
 		lua_register(L, "update_holder", UpdateHolder_Lua);
+        lua_register(L, "quit_game", QuitGame_Lua);
 
 		/* 
 	     * Do the assets file provided by the author to perform 
@@ -83,7 +88,7 @@ int main(int argc, char** argv)
 	/* End Lua Init */
 
 
-    bool shouldQuit = false;
+    
     std::string userInput;
 	std::string processedInput;
 	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
@@ -372,4 +377,14 @@ int UpdateHolder_Lua(lua_State* L)
 	g_DBInst->UpdateObject(*item);
 
 	return 0;
+}
+
+int QuitGame_Lua(lua_State* L)
+{
+    if (g_ShouldQuit)
+        *g_ShouldQuit = true;
+    else
+        log("Unable to quit");
+
+    return 0;
 }
