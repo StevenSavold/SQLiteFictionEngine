@@ -34,8 +34,7 @@ int main(int argc, char** argv)
         return Create(cmdl);
     }
 
-    // sfe::Save(cmdl[1].c_str(), cmdl[2].c_str(), cmdl[3].c_str());
-    
+    return EXIT_FAILURE; // Should be unreachable
 }
 
 void print_usage(const char* prog_name)
@@ -67,6 +66,8 @@ void print_usage(const char* prog_name)
     std::cout << "\t\t" << prog_name << " -C game.sql game.lua\n";
     std::cout << "\tTo create a new SFE file with saved progress:\n";
     std::cout << "\t\t" << prog_name << " -C game.sql game.lua save.sql\n";
+    std::cout << "\tTo create a new NAMED SFE file with no saved progress:\n";
+    std::cout << "\t\t" << prog_name << " -Cf my_new_game.sfe game.sql game.lua\n";
 }
 
 int Dump(argh::parser cmdl)
