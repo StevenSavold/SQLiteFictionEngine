@@ -160,7 +160,7 @@ end
 
 function help()
 	print("Try some of these commands:")
-	print("\tnorth(n), south(s), east(e), west(w), up(u), down(d) - to move in a direction")
+	print("\t(n)orth, (s)outh, (e)ast, (w)est, (u)p, (d)own - to move in a direction")
 	print("\tlook, look at - to get the description of something")
 	print("\tget, take, pick up - to pick up an item from the room")
 	print("\thelp - to print this text")

@@ -2,7 +2,7 @@
 
 #include "Common.h"
 #include "Parsing/ParseUtils.h"
-#include "sqlite3/sqlite3.h"
+#include "sqlite3.h"
 #include <cstdarg>
 #include <string>
 

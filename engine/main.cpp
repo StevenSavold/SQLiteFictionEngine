@@ -1,13 +1,15 @@
 #include "Common.h"
 #include "Parsing/ParseUtils.h"
 #include "Database.h"
-#include "lua/lua.hpp"
+#include "Scripting/Lua.h"
+#include <cstdlib>
 
 
 void printUsage(const char* progName);
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 void printOffscreenDesc(const Database& db);
-void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs);
+bool InitLuaAPI(LuaContext& lua);
+void DynamicCommandDispatch(LuaContext& lua, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs);
 
 int GetCurrentRoom_Lua(lua_State* L);
 int GetRoomTransitions_Lua(lua_State* L);
@@ -49,8 +51,8 @@ int main(int argc, char** argv)
     g_ShouldQuit = &shouldQuit;
 
 	/* Start Lua Init */
-	lua_State* L = luaL_newstate();
-	if (L == nullptr)
+	LuaContext lua = LuaContext();
+	if (!InitLuaAPI(lua))
 	{
 		// something went wrong
 		err("Could not create lua state!\n");
@@ -58,41 +60,17 @@ int main(int argc, char** argv)
 	}
 	else 
 	{
-		/* Open the lua std libs for use */
-		luaL_openlibs(L);
-
-		/* Register engine functions with lua for use */
-		lua_register(L, "get_current_room", GetCurrentRoom_Lua);
-		lua_register(L, "get_room_transitions", GetRoomTransitions_Lua);
-		lua_register(L, "player_transition_to", PlayerTransitionTo_Lua);
-		lua_register(L, "print_location_text", PrintLocationText_Lua);
-		lua_register(L, "print_offscreen_text", PrintOffscreenText_Lua);
-		lua_register(L, "get_holder", GetHolder_Lua);
-		lua_register(L, "get_player_id", GetPlayerID_Lua);
-		lua_register(L, "is_viewed", IsViewed_Lua);
-		lua_register(L, "is_gettable", IsGettable_Lua);
-		lua_register(L, "print_desc", PrintItemDescription_Lua);
-		lua_register(L, "print_first_desc", PrintFirstDescription_Lua);
-		lua_register(L, "update_holder", UpdateHolder_Lua);
-        lua_register(L, "quit_game", QuitGame_Lua);
-
 		/* 
 	     * Do the assets file provided by the author to perform 
 		 * init code and load the verb function symbols.
 		 */
-		if (luaL_dofile(L, "res/assets.lua"))
+		if (lua.DoFile("res/assets.lua"))
 		{
 			err("assests.lua could not be loaded!\n");
+			return EXIT_FAILURE;
 		}
 	}
 	/* End Lua Init */
-
-
-    
-    std::string userInput;
-	std::string processedInput;
-	std::pair<Database::ID_type, Database::ID_type> parsedIDs;
-
 
     while (!shouldQuit)
     {
@@ -101,25 +79,36 @@ int main(int argc, char** argv)
 		 * and has side effect of printing "> " to prompt
 		 * the user.
 		 */
-		userInput = GetUserInput();
+		std::string userInput = GetUserInput();
 
 		/* 
 		 * Takes a const reference to the RAW input and returns
 		 * a copy of the input preprocessed into a more
 		 * manageable form for the game to handle.
 		 */
-		processedInput = PreprocessInput(userInput);
+		std::string processedInput = PreprocessInput(userInput);
 
         /*
          * Parse the preprocessed input to a the IDs of the verb
          * and noun
          */ 
-        parsedIDs = ParseInputToSQLCommand(processedInput, db);
+        std::pair<Database::ID_type, Database::ID_type> parsedIDs = ParseInputToSQLCommand(processedInput, db);
+
+		/*
+		 * There is probably more processing that can be done to
+		 * simplify the job of the "dynamic command dispatcher"
+		 * 
+		 * Something in the neighborhood of transform the pair of
+		 * ids into some objects which hold the DB value of the 
+		 * id and maybe some other info useful for the command 
+		 * dispatcher.
+		 */
+
 
 		/*
 		 * Use the IDs to dispatch the command into Lua
 		 */
-		DynamicCommandDispatch(L, db, parsedIDs);
+		DynamicCommandDispatch(lua, db, parsedIDs);
 
     }
 
@@ -128,8 +117,8 @@ int main(int argc, char** argv)
 
 void printUsage(const char* progName)
 {
-	log("USAGE: ");
-    log("    %s database_file\n", progName);
+	log("USAGE: \n");
+    log("\t%s database_file\n", progName);
 }
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName)
@@ -149,7 +138,32 @@ void printOffscreenDesc(const Database& db)
     log("%s\n", desc->c_str());
 }
 
-void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs)
+bool InitLuaAPI(LuaContext& lua)
+{
+	if (lua.State() != nullptr)
+	{
+		/* Register engine functions with lua for use */
+		lua.Register("get_current_room", GetCurrentRoom_Lua);
+		lua.Register("get_room_transitions", GetRoomTransitions_Lua);
+		lua.Register("player_transition_to", PlayerTransitionTo_Lua);
+		lua.Register("print_location_text", PrintLocationText_Lua);
+		lua.Register("print_offscreen_text", PrintOffscreenText_Lua);
+		lua.Register("get_holder", GetHolder_Lua);
+		lua.Register("get_player_id", GetPlayerID_Lua);
+		lua.Register("is_viewed", IsViewed_Lua);
+		lua.Register("is_gettable", IsGettable_Lua);
+		lua.Register("print_desc", PrintItemDescription_Lua);
+		lua.Register("print_first_desc", PrintFirstDescription_Lua);
+		lua.Register("update_holder", UpdateHolder_Lua);
+        lua.Register("quit_game", QuitGame_Lua);
+
+		return true;
+	}
+
+	return false;
+}
+
+void DynamicCommandDispatch(LuaContext& lua, Database& db, const std::pair<Database::ID_type, Database::ID_type>& parsedIDs)
 {
 	if (parsedIDs.first < 0)
 	{
@@ -173,12 +187,12 @@ void DynamicCommandDispatch(lua_State* L, Database& db, const std::pair<Database
 		[](unsigned char c) -> unsigned char 
 	{ return (c == ' ') ? '_' : c; });
 
-	lua_getglobal(L, funcName->c_str());
-	if (lua_isfunction(L, -1))
+	lua.GetGlobal(funcName->c_str());
+	if (lua.IsFunction(-1))
 	{
 		// If the function exists. Pass the parameter in and call it.
-		lua_pushnumber(L, parsedIDs.second);
-		lua_call(L, 1, 0);	
+		lua.PushNumber(parsedIDs.second);
+		lua.Call(1, 0);	
 	}
 	else
 	{
@@ -202,6 +216,8 @@ int GetRoomTransitions_Lua(lua_State* L)
 
 	// get the thing at the top of the stack
 	int roomID = lua_tointeger(L, -1);
+
+	// TODO: does this trash the lua stack if the roomID passed in is less than 0?
 	if (roomID >= 0)
 	{
 		roomDirections = g_DBInst->GetDirections(roomID);

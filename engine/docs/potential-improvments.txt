@@ -1,0 +1,23 @@
+1.) Add more processing after retrieving the pair of ids:
+    for example: 
+        a.) grab the values of the ids from the DB and construct some more detailed objects to allow the command dispatcher to do less work
+        b.) 
+
+2.) Improve the logging/stdout output
+
+3.) Move the lua interactions into a more abstracted interface
+
+4.) Come up with a better C++ <=> Lua API
+    a.) also consider trying to wrap all of the engine API in a namespace for lua to make the code more readable
+    b.) Allow a method to be created in the lua file which gives authors the ability to override the "i dont know what you mean by that..." text
+    c.) Allow a method to be created in the lua file which gives authors the ability to override the prompt
+    d.) Allow a method to be created in the lua file which gives authors the ability to detect when a function was not found and handle that error (maybe by printing some custom error message to the user)
+    e.) Consider changing the "Print..._Lua" functions to instead return the text that would be printed back to lua so the author could manipulate the text before printing
+
+
+5.) Make a default.lua file which implements the basic verbs for movement to make it easier fir authors to program only the things they want to be non-standard
+    ** not likely to happen **
+
+6.) Use the sqldiff program to store "save files" of the games instead of modifying the actual db file
+
+7.) Integrate the newly made tooling around save files
